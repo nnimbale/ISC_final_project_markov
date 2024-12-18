@@ -82,7 +82,6 @@ This project implements a Markov Chain-based language model for text generation.
 ├── src/
 │   ├── preprocessing.R  # Preprocessing and tokenization functions
 │   ├── model.R          # Functions for Markov Chain training and text generation
-│   ├── utils.R          # Utility functions for text formatting and testing
 ├── tests/
 │   ├── test_cases.R     # Test cases for model validation
 ├── models/
