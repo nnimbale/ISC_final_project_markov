@@ -3,20 +3,10 @@ title: "Final Report"
 author: "Ramyak Bilas and Naman Nimbale"
 date: "2024-12-18"
 output:
-  pdf_document: default
   html_document:
-    code_folding: show
-    theme:
-      bg: '#f2f4f7'
-      fg: '#0f0f0f'
-      primary: '#0f0f0f'
-      base_font:
-        google: Prompt
-      heading_font:
-        google: Proza Libre
-      version: 3
-editor_options: 
-  markdown: 
+    df_print: paged
+editor_options:
+  markdown:
     wrap: 72
 ---
 
@@ -24,8 +14,9 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-
 # Final Report: N-gram Markov Language Model
+
+The project can be found at [github link](https://github.com/nnimbale/ISC_final_project_markov.git)
 
 ## Aim of the Project
 
@@ -66,7 +57,8 @@ example: - **Unigram** (1-gram): `["I", "love", "coding"]` - **Bigram**
 The Markov assumption states that the probability of a word depends only
 on the previous `N-1` words, not on the entire sentence or history.
 Formally: $$
-P(w_t \mid w_{t-1}, w_{t-2}, \dots, w_1) \approx P(w_t \mid w_{t-1}, w_{t-2}, \dots, w_{t-N+1})$$
+P(w_t \mid w_{t-1}, w_{t-2}, \dots, w_1) \approx P(w_t \mid w_{t-1}, w_{t-2}, \dots, w_{t-N+1})
+$$
 
 This simplifies the computation while retaining sufficient context for
 generating coherent text.
@@ -78,12 +70,11 @@ $P(w_t \mid w_{t-1}, \dots, w_{t-N+1})$, which represents the likelihood
 of a word $w_t$ appearing after a specific sequence of preceding words.
 
 The transition probabilities are calculated from the training text
-corpus using **relative frequencies**: 
-$$ P(w_t \mid w_{t-1}, \dots, w_{i-n+1}) = \frac{\text{Count}(w_{t-n+1}, \dots, w_{t-1}, w_t)}{\text{Count}(w_{t-n+1}, \dots, w_{t-1})}
+corpus using **relative frequencies**: $$
+P(w_t \mid w_{t-1}, \dots, w_{t-N+1}) = \frac{\text{Count}(w_{t-N+1}, \dots, w_{t-1}, w_t)}{\text{Count}(w_{t-N+1}, \dots, w_{t-1})}
 $$ where the numerator counts the number of the N-gram
-
-$(w_{t-n+1}, \dots, w_t)$ and the denominator counts the number of
-$(n-1)$-gram $(w_{t-n+1}, \dots, w_{t-1})$.
+$(w_{t-N+1}, \dots, w_t)$ and the denominator counts the number of
+$(N-1)$-gram $(w_{t-N+1}, \dots, w_{t-1})$.
 
 ### **3. Punctuation probabilities**
 
@@ -95,7 +86,8 @@ what the given punctuation is after a text is generated. Since
 punctuation depends strongly on the last word, and we only allow four
 punctuation ( ? , ! . ), the **punctuation probabilities** are
 calculated from training text: $$
-P(\text{punctuation}| w) = \frac{\text{Count}(w, \text{punctuation})}{\text{Count}(w)}$$
+P(\text{punctuation}| w) = \frac{\text{Count}(w, \text{punctuation})}{\text{Count}(w)}
+$$
 
 ## Design Decisions
 
@@ -106,8 +98,7 @@ extensions, we use the regular expression \\.txt (\\ to escape .) and
 check for txt files in the directory.
 
 ```{r}
-setwd("D:\\Studies\\Semesters\\Fall_24\\ISC\\Project\\ISC_final_project_markov") # Change your respective WD path
-directory <- "./data/train"
+directory <- "/Users/ramyakbilas/Downloads/S610_Markov_Model"
 txt_files <- list.files(path = directory, pattern = "\\.txt$", full.names = TRUE)
 print(txt_files)
 ```
@@ -310,7 +301,6 @@ tokens_modified <- tokenize_words(modified_text)
 n_grams_modified <- generate_n_grams(tokens_modified, 3)
 print(n_grams_modified[500:510])
 ```
-
 
 The function **generate_transition_prob** takes in **n_grams** and
 returns a data frame with previous, current, and their transition
@@ -616,47 +606,96 @@ For N=4 and context=Alice to herself:
 
 For N=8 and no context:
 
->Kansas for good and all,  thank you?  Said dorothy gratefully.  You are all very kind to me,  but i should like to start as soon as possible.  We shall go tomorrow morning,  returned the scarecrow.  So now let us all get ready,  for it will be a long journey,  chapter xix attacked by the fighting trees the next morning dorothy kissed the pretty green girl good bye!  And they all shook hands with the soldier with the green whiskers,  he said,  and ask his advice.  So the soldier was summoned and entered the throne room timidly,  for while oz
+> Kansas for good and all, thank you? Said dorothy gratefully. You are
+> all very kind to me, but i should like to start as soon as possible.
+> We shall go tomorrow morning, returned the scarecrow. So now let us
+> all get ready, for it will be a long journey, chapter xix attacked by
+> the fighting trees the next morning dorothy kissed the pretty green
+> girl good bye! And they all shook hands with the soldier with the
+> green whiskers, he said, and ask his advice. So the soldier was
+> summoned and entered the throne room timidly, for while oz
 
 For N=20 and no context:
 
->Thick that the ground was carpeted with them,  there were big yellow and white and blue and purple blossoms,  besides great clusters of scarlet poppies.  Which were so brilliant in color they almost dazzled dorothy s eyes.  Aren t they beautiful,  the girl asked.  As she breathed in the spicy scent of the bright flowers,  i suppose so,  answered the scarecrow,  when i have brains,  i shall probably like them better,  if i only had a heart.  I should love them?  Added the tin woodman,  i always did like flowers.  Said the lion.  They seem so helpless and frail.  But there are none in the forest so bright as these?  They now came upon more and more of the big scarlet poppies,  and fewer and fewer of the other flowers and soon they found themselves in the midst of a great meadow of poppies.  Now it is well known that when there are many of these flowers together their odor is so powerful that anyone who breathes it falls asleep,  and if the sleeper is not carried away from the scent of the flowers,  he sleeps on and on forever.  But dorothy did not know this,  nor could she
+> Thick that the ground was carpeted with them, there were big yellow
+> and white and blue and purple blossoms, besides great clusters of
+> scarlet poppies. Which were so brilliant in color they almost dazzled
+> dorothy s eyes. Aren t they beautiful, the girl asked. As she breathed
+> in the spicy scent of the bright flowers, i suppose so, answered the
+> scarecrow, when i have brains, i shall probably like them better, if i
+> only had a heart. I should love them? Added the tin woodman, i always
+> did like flowers. Said the lion. They seem so helpless and frail. But
+> there are none in the forest so bright as these? They now came upon
+> more and more of the big scarlet poppies, and fewer and fewer of the
+> other flowers and soon they found themselves in the midst of a great
+> meadow of poppies. Now it is well known that when there are many of
+> these flowers together their odor is so powerful that anyone who
+> breathes it falls asleep, and if the sleeper is not carried away from
+> the scent of the flowers, he sleeps on and on forever. But dorothy did
+> not know this, nor could she
 
-We notice that as the value of N increases, the contextual meaning of text is preserved for longer duration of time. An observation in favor of this is that for lower values of N we switch from Alice in Wonderland to Wizard of Oz quite frequently in a moderate size text, but this is rare for a larger value of N.
+We notice that as the value of N increases, the contextual meaning of
+text is preserved for longer duration of time. An observation in favour
+of this is that for lower values of N we switch from Alice in Wonderland
+to Wizard of Oz quite frequently in a moderate size text, but this is
+rare for a larger value of N.
 
 ## Further Improvements
 
-One problem which still persists is to generate text following a context such that the last N-1 letters of the context do not occur in the training data. There can be a few improvements in the readable text function by making it recognize proper nouns and capitalizing them. Other than the four common punctuation (? , ! .) rest of them are lost during cleaning. One can try to keep a few more important one. 
+One problem which still persists is to generate text following a context
+such that the last N-1 letters of the context do not occur in the
+training data. There can be a few improvements in the readable text
+fucntion by making it recognize proper nouns and capitalizing them.
+Other than the four common punctuation (? , ! .) rest of them are lost
+during cleaning. One can try to keep a few more important one.
 
 ## Evidence of Functionality using Test cases
 
-All functions were thoroughly tested, and the results confirm that they operate as intended, handling both typical and edge cases appropriately. The test cases are defined in *test_cases.R* file. The below are the brief description of all the test cases:
+All functions were thoroughly tested, and the results confirm that they
+operate as intended, handling both typical and edge cases appropriately.
+The test cases are defined in test_cases.R file. The below are the brief
+description of all the test cases:
 
-1. Transition probabilities validation: Verified that all transition probabilities in the model lie within the valid range of 0 to 1. The function behaves as expected.
+1.⁠ ⁠Transition probabilities validation: Verified that all transition
+probabilities in the model lie within the valid range of 0 to 1. The
+function behaves as expected.
 
-2. Probability sum validation: Ensured the sum of probabilities for each "previous" state is approximately 1, accounting for floating-point precision. The function produces correct results.
+2.⁠ ⁠Probability sum validation: Ensured the sum of probabilities for each
+"previous" state is approximately 1, accounting for floating-point
+precision. The function produces correct results.
 
-3. Last word probabilities validation: Checked that all probabilities associated with the last words are within the range of 0 to 1. The function works correctly.
+3.⁠ ⁠Last word probabilities validation: Checked that all probabilities
+associated with the last words are within the range of 0 to 1. The
+function works correctly.
 
-4. Word tokenizer validation: Confirmed that tokenize_words correctly splits a given text into individual words and retains punctuation. The function behaves as intended.
+4.⁠ ⁠Word tokenizer validation: Confirmed that tokenize_words correctly
+splits a given text into individual words and retains punctuation. The
+function behaves as intended.
 
-5. Punctuation transition validation: Verified that punctuation_transition accurately extracts last words, punctuation marks, and probabilities from a text. The function performs as expected.
+5.⁠ ⁠Punctuation transition validation: Verified that
+punctuation_transition accurately extracts last words, punctuation
+marks, and probabilities from a text. The function performs as expected.
 
-6. n-gram generation validation:
-Tested generate_n_grams to ensure it generates correct n-grams for a given sequence of tokens. The output matches the expected results.
+6.⁠ ⁠n-gram generation validation: Tested generate_n_grams to ensure it
+generates correct n-grams for a given sequence of tokens. The output
+matches the expected results.
 
-7. n-gram generation with empty input:
-Confirmed that generate_n_grams returns an empty list when provided with an empty token input. The function handles edge cases gracefully.
+7.⁠ ⁠n-gram generation with empty input: Confirmed that generate_n_grams
+returns an empty list when provided with an empty token input. The
+function handles edge cases gracefully.
 
-8. n-gram generation with single token:
-Verified that generate_n_grams returns an empty list when the token count is less than n. The function operates correctly for this scenario.
+8.⁠ ⁠n-gram generation with single token: Verified that generate_n_grams
+returns an empty list when the token count is less than n. The function
+operates correctly for this scenario.
 
-9. Word tokenizer with special characters:
-Ensured that tokenize_words accurately handles text containing special characters and punctuation, preserving their placement. The function behaves as expected.
+9.⁠ ⁠Word tokenizer with special characters: Ensured that tokenize_words
+accurately handles text containing special characters and punctuation,
+preserving their placement. The function behaves as expected.
 
-10. Transition probability calculation:
-Tested generate_transition_prob to ensure it calculates correct transition probabilities for given n-grams. The function produces valid results.
+10.⁠ ⁠Transition probability calculation: Tested generate_transition_prob
+to ensure it calculates correct transition probabilities for given
+n-grams. The function produces valid results.
 
-11. Transition probability with empty input:
-Verified that generate_transition_prob handles an empty input list by returning an empty data frame. The function handles edge cases correctly.
-
+11.⁠ ⁠Transition probability with empty input: Verified that
+generate_transition_prob handles an empty input list by returning an
+empty data frame. The function handles edge cases correctly.
