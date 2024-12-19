@@ -1,5 +1,8 @@
-# training.R
-source("text_preprocess.R")
+# Functions for Markov Chain training and text generation
+# Author: Ramyak Bilas and Naman Nimbale
+
+#setwd("D:\\Studies\\Semesters\\Fall_24\\ISC\\Project\\ISC_final_project_markov") # Change your respective WD path
+source("./src/text_preprocess.R")
 
 punctuation_transition <- function(text) {
   sentences <- unlist(strsplit(text, "(?<=[,\\.\\?!])\\s*", perl = TRUE))
@@ -37,6 +40,11 @@ punctuation_transition <- function(text) {
 }
 
 generate_n_grams <- function(tokens, n=2){
+  
+  if (length(tokens) == 0 || length(tokens) < n) {
+    return(list())  # Return an empty list
+  }
+  
   n_grams <- lapply(1:(length(tokens)-n+1), function(i) tokens[i:(i+n-1)])
   
   n_grams <- lapply(n_grams, function(x) list(x[1:(n-1)], x[n]))
@@ -50,6 +58,11 @@ generate_n_grams <- function(tokens, n=2){
 }
 
 generate_transition_prob <- function(n_grams){
+  
+  if (length(n_grams) == 0) {
+    return(data.frame(previous = character(0), current = character(0), prob = numeric(0)))  # Return an empty list
+  }
+  
   df <- do.call(rbind, lapply(n_grams, function(x) {
     data.frame(previous = x[1], current = x[2])
   }))
@@ -62,7 +75,6 @@ generate_transition_prob <- function(n_grams){
     select(previous, current, prob)
   return(transition_prob)
 }
-
 
 
 train_model <- function(directory, n=2){

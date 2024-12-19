@@ -1,6 +1,11 @@
 # ISC Final Project: Markov Model for Language
 ## Contributors(Equal): Naman Nimbale, Ramyak Bilas
 
+## Main script for the project
+To execute this project, simply run this file:
+ 1. Open in RStudio or run `source("main.R")` in R.
+ 2. Follow the instructions displayed in the console.
+
 ## Project Overview
 This project implements a Markov Chain-based language model for text generation. The language model analyzes text data, generates transition probabilities between words or n-grams, and produces realistic sequences of text based on trained probabilities. The model can be trained on any textual dataset and supports n-gram-based generation for flexible context handling.
 
@@ -78,13 +83,15 @@ This project implements a Markov Chain-based language model for text generation.
 ## Repository Structure (tentative)
 ```plaintext
 ├── data/
-│   ├── train/         # Directory containing training text files
+│   ├── train/                # Directory containing training text files
 ├── src/
-│   ├── preprocessing.R  # Preprocessing and tokenization functions
-│   ├── model.R          # Functions for Markov Chain training and text generation
+│   ├── preprocessing.R       # Preprocessing and tokenization functions
+│   ├── model.R               # Functions for Markov Chain training and text generation
 ├── tests/
-│   ├── test_cases.R     # Test cases for model validation
+│   ├── test_cases.R          # Test cases for functions
 ├── models/
-│   ├── basic_model.rds  # Trained model
-├── README.md            # Project documentation
+│   ├── basic_model.rds       # Trained model
+├── main.R                    # Main file to run for a basic GUI
+├── compiled_final_markov.R   # Final compiled file containing all functions
+├── README.md                 # Project documentation
 

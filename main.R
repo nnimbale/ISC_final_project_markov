@@ -1,5 +1,9 @@
-# main.R
-source("model_training.R")
+# Main function for running and generating model
+# Author: Ramyak Bilas
+
+#setwd("/Users/ramyakbilas/Downloads/S610_Markov_Model") 
+setwd("D:\\Studies\\Semesters\\Fall_24\\ISC\\Project\\ISC_final_project_markov")
+source("./src/model_training.R")
 
 generate_text <- function(model, len=50, feed = "", n = 2){
   transition_df <- model$transition_df

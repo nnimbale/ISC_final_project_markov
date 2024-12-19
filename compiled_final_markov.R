@@ -1,5 +1,8 @@
 # preprocess.R
-setwd("/Users/ramyakbilas/Downloads/S610_Markov_Model") 
+#setwd("/Users/ramyakbilas/Downloads/S610_Markov_Model") 
+
+setwd("D:\\Studies\\Semesters\\Fall_24\\ISC\\Project\\ISC_final_project_markov") # Change your respective WD path
+
 library(dplyr)
 library(readr)
 
@@ -68,6 +71,10 @@ punctuation_transition <- function(text) {
 }
 
 generate_n_grams <- function(tokens, n=2){
+  
+  if (length(tokens) == 0 || length(tokens) < n) {
+    return(list())  # Return an empty list
+  }
   n_grams <- lapply(1:(length(tokens)-n+1), function(i) tokens[i:(i+n-1)])
   
   n_grams <- lapply(n_grams, function(x) list(x[1:(n-1)], x[n]))
@@ -80,7 +87,13 @@ generate_n_grams <- function(tokens, n=2){
   return(n_grams)
 }
 
+
 generate_transition_prob <- function(n_grams){
+  
+  if (length(n_grams) == 0) {
+    return(data.frame(previous = character(0), current = character(0), prob = numeric(0)))  # Return an empty list
+  }
+  
   df <- do.call(rbind, lapply(n_grams, function(x) {
     data.frame(previous = x[1], current = x[2])
   }))
