@@ -4,11 +4,27 @@ author: "Ramyak Bilas and Naman Nimbale"
 date: "2024-12-18"
 output:
   html_document:
-    df_print: paged
+    code_folding: show
+    theme:
+      bg: '#f2f4f7'
+      fg: '#0f0f0f'
+      primary: '#0f0f0f'
+      base_font:
+        google: Prompt
+      heading_font:
+        google: Proza Libre
+      version: 3
+  pdf_document:
+    latex_engine: xelatex
 editor_options:
   markdown:
     wrap: 72
 ---
+
+```{r, include=FALSE}
+options(tinytex.verbose = TRUE)
+```
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -129,7 +145,7 @@ typeof(file_contents)
 
 We clean the text and normalize the texts. First we convert the text to
 lower case, then we replace everything except alphanumeric characters ,
-. ! ? " ' into a space. We also replace all the newline \n with space.
+. ! ? " ' into a space. We also replace all the newline \\n with space.
 This introduces a lot of spaces so we replace multiple strings of spaces
 to a single space. Function **clean_text** is the function that does
 that; take in a list where the elements are texts (**file_contents** in
@@ -148,7 +164,7 @@ clean_text <- function(text) {
   # add spaces before and after , . ? !
   #text <- gsub("([,\\.\\?!])", " \\1 ", text)
   
-  # Replace newlines (\n) with a space
+  # Replace newlines (\\n) with a space
   text <- gsub("\n", " ", text)
   
   # Replace multiple spaces with a single space
@@ -545,9 +561,9 @@ main <- function(){
       # list all valid models
       #models <- list.files(path = directory, pattern = "*.rds$", full.names = TRUE)
       
-      #cat("The following models are available:\n")
+      #cat("The following models are available:\\n")
       #for (i in 1:length(models)){
-      #  cat(models[i], "\n")
+      #  cat(models[i], "\\n")
       #}
       
       model_name <- readline("Please enter the name of the model (including extension): ")
