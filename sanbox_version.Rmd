@@ -1,0 +1,423 @@
+1. First we set the directory. Since our text files were stored with .txt extensions, we use the regular expression \\.txt (\\ to escape .) and checking for txt files in the directory. 
+
+```{r}
+directory <- "/Users/ramyakbilas/Downloads/S610_Markov_Model"
+txt_files <- list.files(path = directory, pattern = "\\.txt$", full.names = TRUE)
+print(txt_files)
+```
+
+2. We create a named list with the content of the the txt files in the previous directory. Function **read_txt_files** takes input a list of paths of the .txt files (as in **txt_files** from the previous block), reads the files and converts to named list with name of the books and  their content. We store this in the list **file_content**. 
+
+```{r}
+# Function to read the content of each file
+read_txt_files <- function(files) {
+  # Read each file and return as a named list
+  file_contents <- lapply(files, readr::read_file)
+  names(file_contents) <- basename(files)  # Assign file names as list names
+  return(file_contents)
+}
+
+# Get the contents of the .txt files
+file_contents <- read_txt_files(txt_files)
+
+# Print the first 500 characters of the text
+print(substr(file_contents[[1]], 1, 500))
+typeof(file_contents)
+
+```
+
+3. We clean the text and normalize the texts. First we convert the text to lower case, then we replace everything except alphanumeric characters , . ! ? " ' into a space. We also replace all the newline \n with space. ~~We make the punctuation marks (, ? . !) into "words" by adding spaces around them as we want to treat them as tokens later.~~ This introduces a lot of spaces so we replace multiple strings of spaces to a single space. Function **clean_text** is the function that does that; take in a list where the elements are texts (**file_contents** in this case) and returns normalized text (**cleaned_txt** here).
+
+```{r}
+clean_text <- function(text) {
+  
+  # Convert all characters to lowercase
+  text <- tolower(text)
+  
+  #sub replaces the first pattern by the second string in the txt
+  # Replace all non-alphanumeric characters (except , . ! ? "') with a space
+  text <- gsub("[^[:alnum:],.!?\"\']", " ", text)
+  
+  # add spaces before and after , . ? !
+  #text <- gsub("([,\\.\\?!])", " \\1 ", text)
+  
+  # Replace newlines (\n) with a space
+  text <- gsub("\n", " ", text)
+  
+  # Replace multiple spaces with a single space
+  text <- gsub("\\s+", " ", text)
+  
+  # Trim leading and trailing spaces
+  text <- trimws(text)
+  
+  # Return the cleaned text
+  return(text)
+}
+
+cleaned_text <- clean_text(file_contents)
+print(substr(cleaned_text[[1]], 1, 900))
+
+```
+
+4. The function **tokenize_words** tokenizes words. It takes in a list containing text (**cleaned_text**) and returns a list of words (which includes punctuation) which we store it in **tokens_clean**. 
+
+```{r}
+
+# Function to tokenize text into words
+tokenize_words <- function(text) {
+  
+  # Split the text wherever there is one or more whitespace characters
+  tokens <- unlist(strsplit(text, "\\s+"))
+  
+  # Return the vector of word tokens
+  return(tokens)
+}
+
+tokens_clean <- tokenize_words(cleaned_text)
+
+print(tokens_clean[1:100])
+```
+
+5. The function **replace_punctuation_with_tag** takes text and replaces all the punctuation marks (? , . !) with a special character </s>. We use this on **cleaned_text** and store the resulatant on **modified_text**.
+
+```{r}
+replace_punctuation_with_tag <- function(text) {
+  
+  # Replace punctuation (, . ? !) with </s>
+  text <- gsub("[,\\.\\?!]", " </s> ", text)
+  
+  # Replace multiple spaces with a single space
+  text <- gsub("\\s+", " ", text)
+  
+  return(text)
+}
+
+modified_text <- replace_punctuation_with_tag(cleaned_text)
+print(substr(modified_text[[1]], 1, 1000))
+```
+
+6. Here we take all the last word of a sentence and the punctuation pair, and calculate the P(punctuation | last_word) and put them in a data frame. **punctuation_transition** function takes in text (here **cleaned_text**) and returns a data frame containg 3 columns: last words, punctuation and P(punctuation | last_word) respectively (we store the output in **punctuations_df**).
+
+```{r}
+library(dplyr)
+
+punctuation_transition <- function(text) {
+  # Split text into sentences using punctuation as delimiters
+  sentences <- unlist(strsplit(text, "(?<=[,\\.\\?!])\\s*", perl = TRUE))
+  
+  # Initialize vectors to store results
+  last_words <- c()
+  punctuations <- c()
+  
+  # Extract the last word and punctuation for each sentence
+  for (sentence in sentences) {
+    # Use regex to find the last word and punctuation
+    match <- regmatches(sentence, gregexpr("\\b\\w+\\b[,\\.\\?!]?", sentence))[[1]]
+    if (length(match) > 0) {
+      last_part <- match[length(match)]
+      last_word <- gsub("[,\\.\\?!]", "", last_part)  # Remove punctuation
+      punctuation <- gsub(".*(,|\\.|\\?|!)$", "\\1", last_part)  # Extract punctuation
+      
+      if (punctuation %in% c(",", ".", "?", "!")) {
+        last_words <- c(last_words, last_word)
+        punctuations <- c(punctuations, punctuation)
+      }
+    }
+  }
+  
+  # Create a data frame
+  df <- data.frame(
+    last_word = last_words,
+    punctuation = punctuations,
+    stringsAsFactors = FALSE
+  )
+  
+  # Calculate probability of punctuation following each word
+  prob_df <- df %>% 
+    group_by(last_word, punctuation) %>%  
+    summarise(count = n(), .groups = 'drop') %>% 
+    group_by(last_word) %>% 
+    mutate(probability = count/sum(count)) %>% 
+    ungroup() %>% 
+    select(last_word, punctuation, probability)
+  
+  return(prob_df)
+}
+
+punctuations_df <- punctuation_transition(cleaned_text)
+print(punctuations_df)
+
+#input_text <- "Hello, how are you? I am fine, thank you! How about you? It's great."
+#result_df <- punctuation_transition(input_text)
+#print(result_df)
+```
+
+7. **generate_n_grams** takes in tokens (as generated by the function we defined before) and returns a list of n-grams where each entry is a pair of context and predicted token. Here we use the **modified_text** tokens and store the n_grams in **n_grams_modified**.
+
+```{r}
+generate_n_grams <- function(tokens, n=2){
+  n_grams <- lapply(1:(length(tokens)-n+1), function(i) tokens[i:(i+n-1)])
+  
+  n_grams <- lapply(n_grams, function(x) list(x[1:(n-1)], x[n]))
+  
+  n_grams <- lapply(n_grams, function(n_gram) {
+    c(paste(n_gram[[1]], collapse = " "),
+      n_gram[[2]])
+  })
+  
+  return(n_grams)
+}
+
+tokens_modified <- tokenize_words(modified_text) 
+n_grams_modified <- generate_n_grams(tokens_modified, 3)
+print(n_grams_modified[500:510])
+```
+
+8. The function **generate_transition_prob** takes in **n_grams** and returns a data frame with previous, current, and their  transition probabilities. Here we apply the function on **n_grams_modified** and store the outcome in **transition_prob_modified**.
+
+```{r}
+generate_transition_prob <- function(n_grams){
+  #Creates a data frame of previous (context) and current (predicted token).
+  df <- do.call(rbind, lapply(n_grams, function(x) {
+    data.frame(previous = x[1], current = x[2])
+  }))
+  
+  transition_prob <- df %>% 
+    group_by(previous, current) %>%  
+    summarise(count = n(), .groups = 'drop') %>% 
+    group_by(previous) %>%
+    mutate(prob = count/sum(count)) %>% 
+    ungroup() %>% 
+    select(previous, current, prob)
+  
+  return(transition_prob)
+}
+
+transition_prob_modified <- generate_transition_prob(n_grams_modified)
+print(transition_prob_modified)
+```
+
+9. We now train a model depending on the txt files in the ddirectory and a choice of n for n-gram. The function **train_model** is basically consolidating what we did before. It takes in the directory path and the n of n-gram, and returns two dataframes containing the punctiuation tranisiton probability and n-gram transition probability.
+
+```{r}
+train_model <- function(directory, n=2){
+  
+  # get the names of the .txt files in the directory
+  txt_files <- list.files(path = directory, pattern = "\\.txt$", full.names = TRUE)
+  
+  #we store all the text content
+  file_contents <- read_txt_files(txt_files)
+  
+  # cleans the texts
+  cleaned_text <- clean_text(file_contents)
+  
+  # store the punctuation transitions
+  punctuations_df <- punctuation_transition(cleaned_text)
+  
+  # This block generates the transition probability for the n-gram
+  modified_text <- replace_punctuation_with_tag(cleaned_text)
+  tokens_modified <- tokenize_words(modified_text) 
+  n_grams_modified <- generate_n_grams(tokens_modified, n)
+  transition_prob_modified <- generate_transition_prob(n_grams_modified)
+  
+  model <- list(punctuations_df = punctuations_df, transition_df = transition_prob_modified)
+  
+  return(model)
+}
+
+n_gram_model_3 <- train_model(directory, 3)
+```
+
+10. The **generate_text** function takes in model name, length of text to generate, context, and n to generate text. What it does is generates using n-gram markov model a sequence of texts of max length = len where we donot count the special character </s>. Then we use the punctuation transition to replace </s> with the appropriate punctuation depending on the last word preceeding </s>. Note that the output is a character vector containing each individual word and punctuations.
+
+```{r}
+generate_text <- function(model, len=50, feed = "", n = 2){
+  transition_df <- model$transition_df
+  punctuations_df <- model$punctuations_df
+  
+  # This code block fixes the first n-gram either from feed
+  
+  # Check the validity of the feed
+  if (feed != ""){
+    feed <- tolower(feed)
+    feed <- unlist(strsplit(feed, "\\s+"))
+    if (length(feed) >= len){
+      stop("The length of the feed is longer than the length of the text requested")
+    }
+    else if (length(feed) < n-1){
+      stop("The length of the feed is shorter than the n-1")
+    }
+    else{
+      first_ngram <- paste(tail(feed, n - 1), collapse = " ")
+    }
+  }
+  # If feed is empty picks a n-gram at random
+  else {
+    first_ngram <- sample(transition_df$previous, 1)
+  }
+  
+  first_ngram <- unlist(strsplit(first_ngram, "\\s+"))
+  
+  text <- character(0)
+  text <- c(text, first_ngram)
+  
+  word_count <- length(text)
+  i <- length(text) + 1 
+  
+  while (word_count < len){
+    
+    previous_ngram <- tail(text, n-1)
+    previous_ngram <- paste(previous_ngram, collapse = " ")
+    previous_ngram <- as.character(previous_ngram)
+    
+    next_words <- transition_df %>% 
+      filter(previous == previous_ngram) 
+    
+    if (nrow(next_words) == 0){
+      stop("You input some words not included in the training data")
+      #break
+    }
+    
+    current_word <- sample(next_words$current, 1, prob = next_words$prob)
+    
+    
+    if (current_word != "</s>") {
+      word_count <- word_count + 1
+    }
+    
+    text <- c(text, current_word)
+    i <- i + 1
+  }
+  
+  
+  for (i in 1:length(text)){
+    if (text[i] == "</s>"){
+      prev_word <- text[i-1]
+      available_punctuation <- punctuations_df%>%
+        filter(last_word %in% prev_word)
+      #Note to self: %in% above instead of == fixes the error. Don't know why
+      
+      punctuation <- sample(available_punctuation$punctuation, 1, prob = available_punctuation$probability)
+      text[i] <- punctuation
+    }
+  }
+  
+  
+  return(text)
+}
+
+random_text <- generate_text(n_gram_model_3, 50, "", 3)
+random_text
+```
+
+11. The **readable_text** takes in a character vector with many words, and collapses them into a readable text, but before doing that it capitalizes the first letter at the beginning of every sentence and takes care of proper spacing near punctuations. 
+
+```{r}
+#Takes character vector and capitalizes the first letter
+capitalize_first_letter <- function(text){
+  text <- paste0(toupper(substr(text, 1, 1)), 
+                 substr(text, 2, nchar(text)))
+  return(text)
+}
+
+# This takes the character vector and gives us a paragharph which follows basic english syntaxes
+readable_text <- function(text){
+  
+  #capitalize the first letters of the first word
+  text[1] <- capitalize_first_letter(text[1])
+  
+  #capitalize the first letter of any word succeeding . or ? or !
+  for (i in 2:length(text)){
+    if (text[i-1] %in% c(".", "?", "!")){
+      text[i] <- capitalize_first_letter(text[i])
+    }
+  }
+  
+  # remove space between the word and the punctuation following it
+  for (i in 2:length(text)){
+    if (text[i] %in% c(".", "?", "!", ",")){
+      text[i - 1] <- paste0(text[i - 1], text[i])
+      text[i] <- ""
+    }
+  }
+  
+  # collapse the character vector by keeping space between each word
+  text <- paste(text, collapse = " ")
+  text <- gsub("\\s+", " ", text)
+  
+  return(text)
+}
+
+readable_text(random_text)
+```
+
+12. The following function ***main()* makes it user interactive to train a model or use a model to generate text, basically consolidating everything we hav done before.
+
+```{r}
+
+main <- function(){
+  while(TRUE){
+    n <- as.integer(readline("What is the n in n-gram: "))
+    feed <- readline("Any context: ")
+    length <- as.integer(readline("Enter the total length of text you want to generate: "))
+    
+    pattern <- paste0("*", "n_", n, "\\.rds")
+    models <- list.files(path = directory, pattern = pattern, full.names = TRUE)
+    cat("The following models are available:\n")
+      for (i in 1:length(models)){
+        cat(models[i], "\n")
+      }
+    
+    new_model <- readline("Do you want to train a new model? (y/n): ")
+      
+    if (new_model == "y") {
+      model <- train_model(directory, n)
+        
+      # Prompt user for model name
+      model_name <- readline("Enter a name for the model: ")
+      model_name <- paste(model_name, "n", n, sep = "_")
+      
+      model_path <- paste0(directory, "/" , model_name, ".rds")
+        
+      # Save the model
+      saveRDS(model, model_path)
+      cat("Model saved as:", model_path, "\n")
+        
+      sample <- generate_text(model, length, n, feed = feed)
+      cat(generate_readable_text(sample))
+    }else {      
+      
+      # list all valid models
+      #models <- list.files(path = directory, pattern = "*.rds$", full.names = TRUE)
+      
+      #cat("The following models are available:\n")
+      #for (i in 1:length(models)){
+      #  cat(models[i], "\n")
+      #}
+      
+      model_name <- readline("Please enter the name of the model (including extension): ")
+      # load the model
+      model_path <- paste0(directory, "/" , model_name)
+      model <- readRDS(model_path)
+      sample <- generate_text(model, length, n, feed = feed)
+      cat(generate_readable_text(sample))
+    }
+    
+    exit <- readline("Do you want to exit? (y/n): ")
+    if (exit == "y"){
+      break
+    }
+  }
+}
+
+```
+
+
+16. We run the **main()**
+
+```{r}
+#main()
+```
+
+
+
